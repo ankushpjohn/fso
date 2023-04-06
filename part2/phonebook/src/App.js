@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import personService from "./sources/persons";
+import "./index.css";
 
 const Filter = ({ searchTerm, handleSearchTerm }) => {
   return (
@@ -32,7 +34,7 @@ const Add = ({
         <input value={newNumber} onChange={handleNewNumber} id="number" />
       </div>
       <div>
-        <button type="submit" onClick={addName}>
+        <button type="button" onClick={addName}>
           add
         </button>
       </div>
@@ -48,25 +50,52 @@ const Person = ({ person }) => {
   );
 };
 
-const List = ({ searched }) => {
+const List = ({ searching, persons, searchResults, personDelete }) => {
+  if (!searching) {
+    searchResults = persons;
+  }
   return (
     <ul>
-      {searched.map((person) => {
-        return <Person person={person} key={person.name} />;
+      {searchResults.map((person) => {
+        return (
+          <div key={person.name}>
+            <Person person={person} />
+            <button
+              onClick={() => {
+                personDelete(person);
+              }}
+            >
+              Delete
+            </button>
+          </div>
+        );
       })}
     </ul>
   );
 };
 
+const Notification = ({ message, setMessage }) => {
+  let status;
+  if (message[1] === "success") status = "successMessage";
+  else status = "errorMessage";
+  return message[0] === null ? null : (
+    <div className={status}>{message[0]}</div>
+  );
+};
+
 const App = () => {
-  const [persons, setPersons] = useState([
-    { name: "Ankush John", number: "+91 61291 53824" },
-    { name: "Gayatri Mestry", number: "+91 61279 54209" },
-  ]);
+  const [persons, setPersons] = useState([]);
   const [newName, setNewName] = useState("");
   const [newNumber, setNewNumber] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [searched, setSearched] = useState(persons);
+  const [searchResults, setSearchResults] = useState(persons);
+  const [message, setMessage] = useState([null, "success"]);
+
+  useEffect(() => {
+    personService.getAll().then((initialPersons) => {
+      setPersons(initialPersons);
+    });
+  }, []);
 
   const handleNewName = (event) => {
     setNewName(event.target.value);
@@ -77,16 +106,29 @@ const App = () => {
   };
 
   const addName = (event) => {
-    event.preventDefault();
-    if (searched.some((e) => e.name === newName)) {
-      alert(`${newName} is already added to phonebook`);
+    const toReplace = persons.find((person) => person.name === newName);
+    let nameObject = { name: newName, number: newNumber };
+
+    if (toReplace !== undefined) {
+      if (
+        window.confirm(`${newName} is already added to phonebook. Replace?`)
+      ) {
+        nameObject = { ...toReplace, ...nameObject };
+        personUpdate(toReplace, nameObject);
+        setMessage([`Replaced ${nameObject.name}`, "success"]);
+      }
     } else {
-      const nameObject = { name: newName, number: newNumber };
-      const searchedCopy = [...searched];
-      searchedCopy.push(nameObject);
-      setSearched(searchedCopy);
-      setPersons(searchedCopy);
+      personService.create(nameObject).then((response) => {
+        setPersons(persons.concat(response));
+      });
+
+      setMessage([`Added ${nameObject.name}`, "success"]);
     }
+
+    setTimeout(() => {
+      setMessage([null, "success"]);
+    }, 1500);
+    setSearchTerm("");
     setNewName("");
     setNewNumber("");
   };
@@ -94,16 +136,42 @@ const App = () => {
   const handleSearchTerm = (event) => {
     const temp = event.target.value;
     setSearchTerm(temp);
-
     const reg = new RegExp(temp, "i");
-    if (temp === "") setSearched(persons);
-    else
-      setSearched(
-        persons.filter((person) => {
-          if (person.name.search(reg) !== -1) return true;
-          return false;
-        })
-      );
+    setSearchResults(
+      persons.filter((person) => person.name.search(reg) !== -1)
+    );
+  };
+
+  const personDelete = (toDelete) => {
+    if (window.confirm(`Delete ${toDelete.name}?`)) {
+      personService.remove(toDelete.id).then(() => {
+        setPersons(persons.filter((person) => person.id !== toDelete.id));
+        setMessage([`Deleted ${toDelete.name}`, "success"]);
+      });
+    }
+    setTimeout(() => {
+      setMessage([null, "success"]);
+    }, 1500);
+    setSearchTerm("");
+    setNewName("");
+    setNewNumber("");
+  };
+
+  const personUpdate = (prev, next) => {
+    personService
+      .update(prev.id, next)
+      .then(() => {
+        const newPersons = persons.filter((person) => {
+          return person.id !== prev.id;
+        });
+        setPersons(newPersons.concat(next));
+      })
+      .catch(() => {
+        setMessage([
+          `Information of ${next.name} has already been removed. Refresh your Page.`,
+          "error",
+        ]);
+      });
   };
 
   return (
@@ -118,7 +186,14 @@ const App = () => {
         addName={addName}
       />
       <h3>Numbers</h3>
-      <List searched={searched} />
+      <List
+        searching={searchTerm !== ""}
+        persons={persons}
+        searchResults={searchResults}
+        personDelete={personDelete}
+      />
+      <Notification message={message} setMessage={setMessage} />
+      {}
     </div>
   );
 };

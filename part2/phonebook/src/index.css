@@ -1,4 +1,4 @@
-body {
+/* body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
@@ -10,4 +10,30 @@ body {
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
+} */
+
+.successMessage {
+  color: green;
+  font-size: 24px;
+  font-weight: 700;
+  text-align: center;
+  font-family: sans-serif;
+  background: rgba(144, 238, 144, 0.8);
+  border: solid green;
+  border-radius: 5px;
+  padding: 8px;
+  margin-bottom: 10px;
+}
+
+.errorMessage {
+  color: black;
+  font-size: 24px;
+  font-weight: 700;
+  text-align: center;
+  font-family: sans-serif;
+  background: rgba(255, 0, 0, 0.7);
+  border: solid red;
+  border-radius: 5px;
+  padding: 8px;
+  margin-bottom: 10px;
 }
